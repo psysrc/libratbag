@@ -170,6 +170,7 @@ pkgconfig.generate (
 src_libratbag = [
 	'src/libratbag-enums.h',
 	'src/libratbag.h',
+	'src/driver-gxtrust.c',
 	'src/driver-asus.c',
 	'src/driver-etekcity.c',
 	'src/driver-hidpp20.c',
