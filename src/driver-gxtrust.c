@@ -1,6 +1,8 @@
 #include "libratbag-private.h"
 
 
+#define GXTRUST_MAX_PROFILES 4
+
 static int
 gxtrust_probe(struct ratbag_device *device)
 {
@@ -9,21 +11,31 @@ gxtrust_probe(struct ratbag_device *device)
 		device->ids.vendor, device->ids.product,
 		device->name);
 
-	// Create 1 profile, 1 resolution, 1 button, 0 LEDs
-	ratbag_device_init_profiles(device, 1, 1, 1, 0);
+	struct ratbag_profile *profile = NULL;
 
-	struct ratbag_profile *profile = ratbag_device_get_profile(device, 0);
+	// Create profiles, 1 resolution, 1 button, 0 LEDs
+	ratbag_device_init_profiles(device, GXTRUST_MAX_PROFILES, 1, 1, 0);
+
+	ratbag_device_for_each_profile(device, profile) {
+		struct ratbag_resolution *res = ratbag_profile_get_resolution(profile, 0);
+		res->is_active = true;
+
+		// Set dummy DPI range
+		ratbag_resolution_set_dpi_list_from_range(res, 100, 2000);
+		ratbag_resolution_set_resolution(res, 800, 800);
+
+		unsigned int rates[] = { 500, 1000 };
+		ratbag_profile_set_report_rate_list(profile, rates, ARRAY_LENGTH(rates));
+	}
+
+	profile = ratbag_device_get_profile(device, 0);
+	if (!profile) {
+		log_error(device->ratbag,
+			"gxtrust: failed to get profile\n");
+		return RATBAG_ERROR_IMPLEMENTATION;
+	}
+
 	profile->is_active = true;
-
-	struct ratbag_resolution *res = ratbag_profile_get_resolution(profile, 0);
-    res->is_active = true;
-
-    // Set dummy DPI range
-    ratbag_resolution_set_dpi_list_from_range(res, 100, 2000);
-    ratbag_resolution_set_resolution(res, 800, 800);
-
-	unsigned int rates[] = { 500, 1000 };
-	ratbag_profile_set_report_rate_list(profile, rates, ARRAY_LENGTH(rates));
 
     return RATBAG_SUCCESS;
 }
