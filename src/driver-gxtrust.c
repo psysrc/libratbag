@@ -1,7 +1,7 @@
 #include "libratbag-private.h"
 
-
-#define GXTRUST_MAX_PROFILES 4
+#define GXTRUST_NUM_PROFILES 4
+#define GXTRUST_NUM_RESOLUTIONS 4
 
 static int
 gxtrust_probe(struct ratbag_device *device)
@@ -12,20 +12,28 @@ gxtrust_probe(struct ratbag_device *device)
 		device->name);
 
 	struct ratbag_profile *profile = NULL;
+	struct ratbag_resolution *res = NULL;
 
-	// Create profiles, 1 resolution, 1 button, 0 LEDs
-	ratbag_device_init_profiles(device, GXTRUST_MAX_PROFILES, 1, 1, 0);
+	// How many profiles, DPI resolutions, buttons, and LEDs the mouse has
+	ratbag_device_init_profiles(device, GXTRUST_NUM_PROFILES, GXTRUST_NUM_RESOLUTIONS, 1, 0);
 
 	ratbag_device_for_each_profile(device, profile) {
-		struct ratbag_resolution *res = ratbag_profile_get_resolution(profile, 0);
+		ratbag_profile_for_each_resolution(profile, res) {
+			// Set dummy DPI range
+			ratbag_resolution_set_dpi_list_from_range(res, 100, 2000);
+			ratbag_resolution_set_resolution(res, 800, 800);
+
+			unsigned int rates[] = { 500, 1000 };
+			ratbag_profile_set_report_rate_list(profile, rates, ARRAY_LENGTH(rates));
+		}
+
+		res = ratbag_profile_get_resolution(profile, 0);
+		if (!res) {
+			log_error(device->ratbag,
+				"gxtrust: failed to get resolution\n");
+			return RATBAG_ERROR_IMPLEMENTATION;
+		}
 		res->is_active = true;
-
-		// Set dummy DPI range
-		ratbag_resolution_set_dpi_list_from_range(res, 100, 2000);
-		ratbag_resolution_set_resolution(res, 800, 800);
-
-		unsigned int rates[] = { 500, 1000 };
-		ratbag_profile_set_report_rate_list(profile, rates, ARRAY_LENGTH(rates));
 	}
 
 	profile = ratbag_device_get_profile(device, 0);
